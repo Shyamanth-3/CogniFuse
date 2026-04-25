@@ -51,18 +51,23 @@ from fastapi import Depends, Header
 async def get_current_user(authorization: str = Header(None)):
     """Verifies the Supabase JWT and returns the user object."""
     if not authorization or not authorization.startswith("Bearer "):
+        print("[Auth Error] Missing or invalid Authorization header.")
         raise HTTPException(status_code=401, detail="Missing or invalid Authorization header.")
     
     token = authorization.split(" ")[1]
     try:
         # Verify token with Supabase
-        user = supabase.auth.get_user(token)
-        if not user or not user.user:
+        response = supabase.auth.get_user(token)
+        if not response or not response.user:
+            print(f"[Auth Error] Supabase returned empty user for token. Response: {response}")
             raise HTTPException(status_code=401, detail="Invalid session.")
-        return user.user
+        return response.user
     except Exception as e:
-        print(f"[Auth Error] {e}")
-        raise HTTPException(status_code=401, detail="Authentication failed.")
+        print(f"[Auth Error] Exception during get_user: {type(e).__name__}: {str(e)}")
+        # If it's already an HTTPException, re-raise it
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
 
 # ── Data Scoping Helpers ──────────────────────────────────
 async def get_user_graph(user_id: str):
