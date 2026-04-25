@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-url: str = os.getenv("SUPABASE_URL")
+url: str = (os.getenv("SUPABASE_URL") or "").strip()
 # For backend operations, we prefer the Service Role key to bypass RLS
 # if it's not available, we fall back to the Anon key.
-key: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+key: str = (os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY") or "").strip()
 
 if not url or "your-project-id" in url:
     print("\n[WARNING] Supabase URL is not configured. Database operations will fail.")
