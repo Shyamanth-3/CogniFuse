@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const API = 'http://localhost:8000';
+const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 // Color based on mastery level
 function masteryColor(mastery) {
