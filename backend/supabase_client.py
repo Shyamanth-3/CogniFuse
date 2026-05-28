@@ -16,8 +16,18 @@ if not url or "your-project-id" in url:
 if not key or "your-anon-key-here" in key:
     print("\n[WARNING] Supabase API Key is not configured. Database operations will fail.\n")
 
-# Use empty strings as defaults to prevent create_client(None, None) crash on startup
-supabase: Client = create_client(url or "", key or "")
+class MissingSupabaseClient:
+    def __getattr__(self, name):
+        raise RuntimeError(
+            "Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY "
+            "or SUPABASE_SERVICE_ROLE_KEY in backend/.env."
+        )
+
+
+if url and key and "your-project-id" not in url and "your-anon-key-here" not in key:
+    supabase: Client | MissingSupabaseClient = create_client(url, key)
+else:
+    supabase = MissingSupabaseClient()
 
 def get_supabase():
     return supabase

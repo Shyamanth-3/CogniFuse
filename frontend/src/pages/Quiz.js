@@ -19,6 +19,7 @@ export default function Quiz() {
   const [failureCount, setFailureCount] = useState(0);
   const [masteryScore, setMasteryScore] = useState(0);
   const [error, setError] = useState('');
+  const [conceptMenuOpen, setConceptMenuOpen] = useState(false);
 
   // Mistake Analysis
   const [analysis, setAnalysis] = useState(null);
@@ -118,6 +119,14 @@ export default function Quiz() {
     setFailureCount(0);
   };
 
+  const handleConceptSelect = (c) => {
+    setConcept(c);
+    fetchQuiz(c);
+    setFailureCount(0);
+    setMasteryScore(0);
+    setConceptMenuOpen(false);
+  };
+
   const getOptionClass = (option) => {
     if (!answered) return 'option-btn';
     if (option === quiz.answer) return 'option-btn correct';
@@ -156,13 +165,38 @@ export default function Quiz() {
 
         {/* Concept selector */}
         {orderedConcepts.length > 0 && (
-          <div className="glass p-4 mb-5">
-            <p className="text-xs text-gray-500 mb-2.5 font-medium uppercase tracking-wider">Select Concept</p>
+          <div className="glass mb-5 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setConceptMenuOpen((open) => !open)}
+              className="w-full flex items-center justify-between gap-4 px-4 py-3 text-left hover:bg-white/[0.03] transition-colors"
+              aria-expanded={conceptMenuOpen}
+            >
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Selected Concept</p>
+                <p className="mt-1 text-sm font-semibold text-white truncate">
+                  {concept || 'Choose a concept'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-xs text-gray-500">{orderedConcepts.length} concepts</span>
+                <span className={`text-gray-400 transition-transform duration-300 ${conceptMenuOpen ? 'rotate-180' : ''}`}>
+                  v
+                </span>
+              </div>
+            </button>
+            <div
+              className={`transition-all duration-300 ease-out ${
+                conceptMenuOpen ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <div className="px-4 pb-4 pt-1 border-t border-white/5">
+                <div className="max-h-64 overflow-y-auto pr-1 custom-scroll">
             <div className="flex flex-wrap gap-1.5">
               {orderedConcepts.map((c, i) => (
                 <button
                   key={i}
-                  onClick={() => { setConcept(c); fetchQuiz(c); setFailureCount(0); setMasteryScore(0); }}
+                  onClick={() => handleConceptSelect(c)}
                   className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all duration-200 ${c === concept
                     ? 'bg-brand-500 text-white'
                     : 'bg-white/5 text-gray-400 border border-white/10 hover:border-brand-400/40 hover:text-white'
@@ -171,6 +205,9 @@ export default function Quiz() {
                   {c.length > 16 ? c.slice(0, 16) + '…' : c}
                 </button>
               ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

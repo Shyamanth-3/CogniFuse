@@ -1,18 +1,9 @@
 
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
-import { useState, useEffect } from 'react';
 
-export default function Landing() {
-  const [session, setSession] = useState(null);
+export default function Landing({ session }) {
   const navigate = useNavigate();
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-  }, []);
 
   return (
     <div className="landing-container" style={styles.container}>

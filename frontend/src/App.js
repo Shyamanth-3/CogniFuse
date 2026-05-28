@@ -7,7 +7,7 @@ import MindMap from './pages/MindMap';
 import Analytics from './pages/Analytics';
 import Login from './pages/Login';
 import Landing from './pages/Landing';
-import { supabase } from './supabaseClient';
+import { setCurrentSession, supabase } from './supabaseClient';
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 
@@ -68,10 +68,12 @@ export default function App() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentSession(session);
       setSession(session);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentSession(session);
       setSession(session);
     });
 
@@ -83,7 +85,7 @@ export default function App() {
       {session && <Navbar />}
       <main className={`${session ? 'pt-14' : ''} min-h-screen border-t border-white/5 bg-gray-950`}>
         <Routes>
-          <Route path="/" element={<Landing />} />
+          <Route path="/" element={<Landing session={session} />} />
           <Route path="/login" element={!session ? <Login /> : <Navigate to="/dashboard" />} />
           
           <Route path="/dashboard" element={<ProtectedRoute session={session}><Upload /></ProtectedRoute>} />

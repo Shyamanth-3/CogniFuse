@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { getCurrentSession, setCurrentSession, supabase } from '../supabaseClient';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -62,17 +63,39 @@ export default function Upload() {
     setError('');
 
     try {
+      let session = getCurrentSession();
+      if (!session) {
+        const { data } = await supabase.auth.getSession();
+        session = data.session;
+        setCurrentSession(session);
+      }
+
+      if (!session?.access_token) {
+        setError('Please sign in again before uploading study material.');
+        setLoading(false);
+        return;
+      }
+
+      const authHeaders = {
+        Authorization: `Bearer ${session.access_token}`,
+      };
+
       if (file) {
         const formData = new FormData();
         formData.append('file', file);
         const res = await axios.post(`${API}/process-file`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+          headers: {
+            ...authHeaders,
+            'Content-Type': 'multipart/form-data',
+          },
         });
         sessionStorage.setItem('flashcards', JSON.stringify(res.data.flashcards));
         sessionStorage.setItem('graph', JSON.stringify(res.data.graph));
         sessionStorage.setItem('ordered_concepts', JSON.stringify(res.data.ordered_concepts));
       } else {
-        const res = await axios.post(`${API}/process-text`, { text });
+        const res = await axios.post(`${API}/process-text`, { text }, {
+          headers: authHeaders,
+        });
         sessionStorage.setItem('flashcards', JSON.stringify(res.data.flashcards));
         sessionStorage.setItem('graph', JSON.stringify(res.data.graph));
         sessionStorage.setItem('ordered_concepts', JSON.stringify(res.data.ordered_concepts));

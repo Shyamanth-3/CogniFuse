@@ -4,3 +4,13 @@ const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://your-project-
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'your-anon-key-here';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+let currentSession = null;
+
+export function setCurrentSession(session) {
+  currentSession = session;
+}
+
+export function getCurrentSession() {
+  return currentSession;
+}

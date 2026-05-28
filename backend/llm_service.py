@@ -72,6 +72,52 @@ def _clean_json_response(text: str) -> str:
     return text.strip()
 
 
+def _extract_json_segment(text: str) -> str:
+    """Return the first JSON array/object-looking segment from a model response."""
+    text = _clean_json_response(text)
+    if not text:
+        return ""
+
+    starts = [idx for idx in (text.find("["), text.find("{")) if idx != -1]
+    if not starts:
+        return text
+
+    start = min(starts)
+    open_char = text[start]
+    close_char = "]" if open_char == "[" else "}"
+    end = text.rfind(close_char)
+    if end == -1 or end < start:
+        return text[start:]
+    return text[start:end + 1]
+
+
+def _strip_trailing_commas(text: str) -> str:
+    return re.sub(r",\s*([}\]])", r"\1", text)
+
+
+def _quote_unquoted_keys(text: str) -> str:
+    return re.sub(r'([{,]\s*)([A-Za-z_][A-Za-z0-9_ -]*)(\s*:)', r'\1"\2"\3', text)
+
+
+def _loads_model_json(text: str):
+    """Parse JSON returned by an LLM, tolerating common non-JSON slips."""
+    raw = _extract_json_segment(text)
+    attempts = [
+        raw,
+        _strip_trailing_commas(raw),
+        _quote_unquoted_keys(_strip_trailing_commas(raw)),
+    ]
+
+    last_error = None
+    for candidate in attempts:
+        try:
+            return json.loads(candidate, strict=False)
+        except json.JSONDecodeError as exc:
+            last_error = exc
+
+    raise last_error or ValueError("No JSON content found")
+
+
 import spacy
 
 try:
@@ -105,8 +151,7 @@ def extract_triplets(text: str) -> list[dict]:
     )
     try:
         response_text = generate_content_with_fallback(prompt)
-        raw = _clean_json_response(response_text)
-        triplets = json.loads(raw)
+        triplets = _loads_model_json(response_text)
         # Validate structure
         validated = []
         for t in triplets:
@@ -145,8 +190,7 @@ def get_foundational_prerequisites(topic: str) -> list[dict]:
     )
     try:
         response_text = generate_content_with_fallback(prompt)
-        raw = _clean_json_response(response_text)
-        triplets = json.loads(raw)
+        triplets = _loads_model_json(response_text)
         return [
             {
                 "subject": str(t["subject"]).strip(),
@@ -181,8 +225,7 @@ def analyze_mistake(question: str, user_answer: str, concept: str) -> dict:
     )
     try:
         response_text = generate_content_with_fallback(prompt)
-        raw = _clean_json_response(response_text)
-        return json.loads(raw)
+        return _loads_model_json(response_text)
     except Exception as e:
         print(f"[OpenRouter] Error in analyze_mistake: {e}")
         return {
@@ -225,8 +268,7 @@ def generate_flashcards(ordered_concepts: list[str], graph_data: dict) -> list[d
         
         try:
             response_text = generate_content_with_fallback(prompt)
-            raw = _clean_json_response(response_text)
-            batch_cards = json.loads(raw)
+            batch_cards = _loads_model_json(response_text)
             
             if isinstance(batch_cards, list):
                 for fc in batch_cards:
@@ -265,8 +307,7 @@ def generate_quiz(concept: str, context: str = "") -> dict:
     )
     try:
         response_text = generate_content_with_fallback(prompt)
-        raw = _clean_json_response(response_text)
-        quiz = json.loads(raw)
+        quiz = _loads_model_json(response_text)
         return {
             "question": str(quiz.get("question", "")),
             "options": [str(o) for o in quiz.get("options", [])],
@@ -303,8 +344,7 @@ def mutate_card(concept: str, previous_explanation: str) -> dict:
     )
     try:
         response_text = generate_content_with_fallback(prompt)
-        raw = _clean_json_response(response_text)
-        card = json.loads(raw)
+        card = _loads_model_json(response_text)
         return {
             "front": str(card.get("front", f"Explain {concept} in simple terms")),
             "back": str(card.get("back", f"A different way to understand {concept}."))

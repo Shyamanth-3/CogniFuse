@@ -3,11 +3,11 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import axios from 'axios';
-import { supabase } from './supabaseClient';
+import { getCurrentSession } from './supabaseClient';
 
 // Global Axios Interceptor to attach Supabase JWT
-axios.interceptors.request.use(async (config) => {
-  const { data: { session } } = await supabase.auth.getSession();
+axios.interceptors.request.use((config) => {
+  const session = getCurrentSession();
   if (session) {
     config.headers.Authorization = `Bearer ${session.access_token}`;
   }
